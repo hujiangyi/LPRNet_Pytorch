@@ -50,8 +50,9 @@ def get_parser():
     parser = argparse.ArgumentParser(description='parameters to train net')
     parser.add_argument('--max_epoch', default=15, help='epoch to train the network')
     parser.add_argument('--img_size', default=[94, 24], help='the image size')
-    parser.add_argument('--train_img_dirs', default="~/workspace/trainMixLPR", help='the train images path')
-    parser.add_argument('--test_img_dirs', default="~/workspace/testMixLPR", help='the test images path')
+    parser.add_argument('--base_data_dirs', default="../CBLPRD-330k_v1/", help='the test data base path')
+    parser.add_argument('--train_txt', default="train.txt", help='the train images config file')
+    parser.add_argument('--test_txt', default="train.txt", help='the test images config file')
     parser.add_argument('--dropout_rate', default=0.5, help='dropout rate.')
     parser.add_argument('--learning_rate', default=0.1, help='base value of learning rate.')
     parser.add_argument('--lpr_max_len', default=8, help='license plate number max length.')
@@ -59,7 +60,7 @@ def get_parser():
     parser.add_argument('--test_batch_size', default=120, help='testing batch size.')
     parser.add_argument('--phase_train', default=True, type=bool, help='train or test phase flag.')
     parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
-    parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
+    parser.add_argument('--cuda', default=False, type=bool, help='Use cuda to train model')
     parser.add_argument('--resume_epoch', default=0, type=int, help='resume iter for retraining')
     parser.add_argument('--save_interval', default=2000, type=int, help='interval for save model state dict')
     parser.add_argument('--test_interval', default=2000, type=int, help='interval for evaluate')
@@ -83,7 +84,7 @@ def collate_fn(batch):
         imgs.append(torch.from_numpy(img))
         labels.extend(label)
         lengths.append(length)
-    labels = np.asarray(labels).flatten().astype(np.int)
+    labels = np.asarray(labels).flatten().astype(int)
 
     return (torch.stack(imgs, 0), torch.from_numpy(labels), lengths)
 
@@ -129,10 +130,8 @@ def train():
     #                       momentum=args.momentum, weight_decay=args.weight_decay)
     optimizer = optim.RMSprop(lprnet.parameters(), lr=args.learning_rate, alpha = 0.9, eps=1e-08,
                          momentum=args.momentum, weight_decay=args.weight_decay)
-    train_img_dirs = os.path.expanduser(args.train_img_dirs)
-    test_img_dirs = os.path.expanduser(args.test_img_dirs)
-    train_dataset = LPRDataLoader(train_img_dirs.split(','), args.img_size, args.lpr_max_len)
-    test_dataset = LPRDataLoader(test_img_dirs.split(','), args.img_size, args.lpr_max_len)
+    train_dataset = LPRDataLoader(args.base_data_dirs, args.train_txt, args.img_size, args.lpr_max_len)
+    test_dataset = LPRDataLoader(args.base_data_dirs, args.test_txt, args.img_size, args.lpr_max_len)
 
     epoch_size = len(train_dataset) // args.train_batch_size
     max_iter = args.max_epoch * epoch_size

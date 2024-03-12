@@ -13,17 +13,24 @@ CHARS = ['京', '沪', '津', '渝', '冀', '晋', '蒙', '辽', '吉', '黑',
          'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K',
          'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
          'W', 'X', 'Y', 'Z', 'I', 'O', '-'
+    # , '学', '港', '使', '领', '澳', '挂', '临'
          ]
 
 CHARS_DICT = {char:i for i, char in enumerate(CHARS)}
 
 class LPRDataLoader(Dataset):
-    def __init__(self, img_dir, imgSize, lpr_max_len, PreprocFun=None):
-        self.img_dir = img_dir
+    def __init__(self, base_path, txt_file, imgSize, lpr_max_len, PreprocFun=None):
         self.img_paths = []
-        for i in range(len(img_dir)):
-            self.img_paths += [el for el in paths.list_images(img_dir[i])]
-        random.shuffle(self.img_paths)
+        self.labels = []
+        with open(base_path + txt_file, 'r') as f:
+            for line in f:
+                parts = line.strip().split(' ')
+                if self.skip_line(parts):
+                    print("skip label:", parts[1])
+                    continue
+                self.img_paths.append(base_path + parts[0])
+                self.labels.append(parts[1])
+
         self.img_size = imgSize
         self.lpr_max_len = lpr_max_len
         if PreprocFun is not None:
@@ -36,25 +43,22 @@ class LPRDataLoader(Dataset):
 
     def __getitem__(self, index):
         filename = self.img_paths[index]
+        label_str = self.labels[index]
+
         Image = cv2.imread(filename)
         height, width, _ = Image.shape
         if height != self.img_size[1] or width != self.img_size[0]:
             Image = cv2.resize(Image, self.img_size)
         Image = self.PreprocFun(Image)
 
-        basename = os.path.basename(filename)
-        imgname, suffix = os.path.splitext(basename)
-        imgname = imgname.split("-")[0].split("_")[0]
-        label = list()
-        for c in imgname:
-            # one_hot_base = np.zeros(len(CHARS))
-            # one_hot_base[CHARS_DICT[c]] = 1
+        label = []
+        for c in label_str:
             label.append(CHARS_DICT[c])
 
-        if len(label) == 8:
-            if self.check(label) == False:
-                print(imgname)
-                assert 0, "Error label ^~^!!!"
+        # if len(label) == 8 or len(label) == 9 or len(label) == 10:
+        #     if not self.check(label):
+        #         print(filename,label_str)
+        #         assert 0, "Error label ^~^!!!"
 
         return Image, label, len(label)
 
@@ -73,3 +77,10 @@ class LPRDataLoader(Dataset):
             return False
         else:
             return True
+
+    def skip_line(self, parts):
+        skip_characters = {'学', '港', '使', '领', '澳', '挂', '临'}
+        for char in parts[1]:
+            if char in skip_characters:
+                return True
+        return False
