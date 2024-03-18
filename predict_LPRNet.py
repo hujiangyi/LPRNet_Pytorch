@@ -62,12 +62,22 @@ def test():
         return False
     predict(lprnet, args)
 
+def transform(self, img):
+    img = img.astype('float32')
+    img -= 127.5
+    img *= 0.0078125
+    img = np.transpose(img, (2, 0, 1))
+
+    return img
+
 def predict(Net, args):
     image = cv2.imread(args.imagefile)
     height, width, _ = image.shape
     if height != args.img_size[1] or width != args.img_size[0]:
         image = cv2.resize(image, args.img_size)
 
+    image = transform(image)
+    
     if args.cuda:
         image = image.cuda()
 
