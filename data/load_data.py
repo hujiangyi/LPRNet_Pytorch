@@ -55,6 +55,8 @@ class LPRDataLoader(Dataset):
 
         label = []
         for c in label_str:
+            if c not in CHARS_DICT:
+                raise ValueError(f"Character '{c}' not found in CHARS_DICT. Exiting program.")
             label.append(CHARS_DICT[c])
 
         # if len(label) == 8 or len(label) == 9 or len(label) == 10:

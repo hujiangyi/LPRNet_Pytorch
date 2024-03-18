@@ -222,7 +222,23 @@ def Greedy_Decode_Eval(Net, datasets, args):
             label = labels[start:start+length]
             targets.append(label)
             start += length
-        targets = np.array([el.numpy() for el in targets])
+
+        max_length = max(lengths)  # 计算所有标签序列的最大长度
+        # 将每个标签序列填充到相同的长度
+        for i in range(len(targets)):
+            current_length = len(targets[i])
+            if current_length < max_length:
+                padding_length = max_length - current_length
+                # 在标签序列末尾填充 0
+                targets[i] = np.concatenate((targets[i], [len(CHARS) - 1] * padding_length))
+            elif current_length > max_length:
+                # 如果标签序列长度超过最大长度，则截断
+                targets[i] = targets[i][:max_length]
+
+        # # 将填充或截断后的标签序列转换为 NumPy 数组
+        targets = np.array(targets)
+
+        # targets = np.array([el.numpy() for el in targets])
 
         if args.cuda:
             images = Variable(images.cuda())
