@@ -90,6 +90,7 @@ def collate_fn(batch):
     return (torch.stack(imgs, 0), torch.from_numpy(labels), lengths)
 
 def train():
+    global data_loader
     logging.basicConfig(filename='out.txt', level=logging.INFO)
     args = get_parser()
 
@@ -148,15 +149,20 @@ def train():
 
     for iteration in range(start_iter, max_iter):
         if iteration % epoch_size == 0:
+            if data_loader is not None:
+                data_loader.close()
+            data_loader = DataLoader(train_dataset, int(args.train_batch_size), shuffle=True,num_workers=int(args.num_workers), collate_fn=collate_fn)
             # create batch iterator
-            batch_iterator = iter(DataLoader(train_dataset, int(args.train_batch_size), shuffle=True, num_workers=int(args.num_workers), collate_fn=collate_fn))
+            batch_iterator = iter(data_loader)
             loss_val = 0
             epoch += 1
 
         if iteration !=0 and iteration % int(args.save_interval) == 0:
+            logging.info('torch.save ' + iteration)
             torch.save(lprnet.state_dict(), args.save_folder + 'LPRNet_' + '_iteration_' + repr(iteration) + '.pth')
 
         if (iteration + 1) % int(args.test_interval) == 0:
+            logging.info('Greedy_Decode_Eval ' + iteration)
             Greedy_Decode_Eval(lprnet, test_dataset, args)
             # lprnet.train() # should be switch to train mode
 
