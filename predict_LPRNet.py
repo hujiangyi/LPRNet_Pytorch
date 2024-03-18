@@ -60,24 +60,27 @@ def test():
     else:
         print("[Error] Can't found pretrained mode, please check!")
         return False
-    predict(lprnet, args)
+    transform = transforms.Compose([
+        transforms.Resize((args.img_size[0], args.img_size[1])),  # 缩放图片到指定大小
+        transforms.ToTensor(),  # 将PIL图片转换为tensor，并自动进行归一化到[0, 1]
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # 使用ImageNet的均值和标准差进行归一化
+    ])
+    predict(lprnet, args, transform)
 
-def transform(self, img):
-    img = img.astype('float32')
-    img -= 127.5
-    img *= 0.0078125
-    img = np.transpose(img, (2, 0, 1))
 
-    return img
 
-def predict(Net, args):
-    image = cv2.imread(args.imagefile)
-    height, width, _ = image.shape
-    if height != args.img_size[1] or width != args.img_size[0]:
-        image = cv2.resize(image, args.img_size)
+def predict(Net, args, transform):
+    # 加载图片
+    image = Image.open(args.imagefile).convert('RGB')
 
     image = transform(image)
-    
+
+        # 将PIL图片转换为tensor
+    image = torch.from_numpy(np.array(image))
+
+    # 根据需要调整张量的维度
+    image = image.permute(2, 0, 1)  # 将维度从 (H, W, C) 转换为 (C, H, W)
+
     if args.cuda:
         image = image.cuda()
 
