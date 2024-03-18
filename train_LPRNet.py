@@ -136,7 +136,7 @@ def train():
     train_dataset = LPRDataLoader(args.base_data_dirs, args.train_txt, args.img_size, args.lpr_max_len)
     test_dataset = LPRDataLoader(args.base_data_dirs, args.test_txt, args.img_size, args.lpr_max_len)
 
-    epoch_size = len(train_dataset) // args.train_batch_size
+    epoch_size = len(train_dataset) // int(args.train_batch_size)
     max_iter = args.max_epoch * epoch_size
 
     ctc_loss = nn.CTCLoss(blank=len(CHARS)-1, reduction='mean') # reduction: 'none' | 'mean' | 'sum'
@@ -149,7 +149,7 @@ def train():
     for iteration in range(start_iter, max_iter):
         if iteration % epoch_size == 0:
             # create batch iterator
-            batch_iterator = iter(DataLoader(train_dataset, args.train_batch_size, shuffle=True, num_workers=args.num_workers, collate_fn=collate_fn))
+            batch_iterator = iter(DataLoader(train_dataset, int(args.train_batch_size), shuffle=True, num_workers=int(args.num_workers), collate_fn=collate_fn))
             loss_val = 0
             epoch += 1
 
@@ -206,8 +206,8 @@ def train():
 
 def Greedy_Decode_Eval(Net, datasets, args):
     # TestNet = Net.eval()
-    epoch_size = len(datasets) // args.test_batch_size
-    batch_iterator = iter(DataLoader(datasets, args.test_batch_size, shuffle=True, num_workers=args.num_workers, collate_fn=collate_fn))
+    epoch_size = len(datasets) // int(args.test_batch_size)
+    batch_iterator = iter(DataLoader(datasets, int(args.test_batch_size), shuffle=True, num_workers=int(args.num_workers), collate_fn=collate_fn))
 
     Tp = 0
     Tn_1 = 0
