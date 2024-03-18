@@ -57,8 +57,8 @@ def test():
     args = get_parser()
 
     lprnet = build_lprnet(lpr_max_len=args.lpr_max_len, phase=args.phase_train, class_num=len(CHARS), dropout_rate=args.dropout_rate)
-    device = torch.device("cuda:0" if args.cuda else "cpu")
-    lprnet.to(device)
+    # device = torch.device("cuda:0" if args.cuda else "cpu")
+    # lprnet.to(device)
     print("Successful to build network!")
 
     # load pretrained model
@@ -68,6 +68,12 @@ def test():
     else:
         print("[Error] Can't found pretrained mode, please check!")
         return False
+
+    logging.info(device)
+    if args.cuda:
+        lprnet.cuda(0)
+    else:
+        lprnet.cpu()
 
     test_dataset = LPRDataLoader(args.base_data_dirs, args.test_txt, args.img_size, args.lpr_max_len)
     try:
@@ -97,9 +103,9 @@ def Greedy_Decode_Eval(Net, datasets, args):
         imgs = images.numpy().copy()
 
         if args.cuda:
-            images = Variable(images.cuda())
+            images = images.cuda()
         else:
-            images = Variable(images)
+            images = images
 
         # forward
         prebs = Net(images)
