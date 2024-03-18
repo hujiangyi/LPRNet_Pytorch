@@ -90,7 +90,6 @@ def collate_fn(batch):
     return (torch.stack(imgs, 0), torch.from_numpy(labels), lengths)
 
 def train():
-    global data_loader
     logging.basicConfig(filename='out.txt', level=logging.INFO)
     args = get_parser()
 
@@ -102,9 +101,8 @@ def train():
         os.mkdir(args.save_folder)
 
     lprnet = build_lprnet(lpr_max_len=args.lpr_max_len, phase=args.phase_train, class_num=len(CHARS), dropout_rate=args.dropout_rate)
-    device = torch.device("cuda:0" if args.cuda else "cpu")
-    logging.info(device)
-    lprnet.to(device)
+    # device = torch.device("cuda:0" if args.cuda else "cpu")
+    # lprnet.to(device)
     logging.info("Successful to build network!")
 
     # load pretrained model
@@ -129,6 +127,12 @@ def train():
         lprnet.container.apply(weights_init)
         logging.info("initial net weights successful!")
 
+    logging.info(device)
+    if args.cuda:
+        lprnet.cuda(0)
+    else:
+        lprnet.cpu()
+
     # define optimizer
     # optimizer = optim.SGD(lprnet.parameters(), lr=args.learning_rate,
     #                       momentum=args.momentum, weight_decay=args.weight_decay)
@@ -149,20 +153,17 @@ def train():
 
     for iteration in range(start_iter, max_iter):
         if iteration % epoch_size == 0:
-            if data_loader is not None:
-                data_loader.close()
-            data_loader = DataLoader(train_dataset, int(args.train_batch_size), shuffle=True,num_workers=int(args.num_workers), collate_fn=collate_fn)
             # create batch iterator
-            batch_iterator = iter(data_loader)
+            batch_iterator = iter(DataLoader(train_dataset, int(args.train_batch_size), shuffle=True,num_workers=int(args.num_workers), collate_fn=collate_fn))
             loss_val = 0
             epoch += 1
 
         if iteration !=0 and iteration % int(args.save_interval) == 0:
-            logging.info('torch.save ' + iteration)
+            logging.info('torch.save ' + repr(iteration))
             torch.save(lprnet.state_dict(), args.save_folder + 'LPRNet_' + '_iteration_' + repr(iteration) + '.pth')
 
         if (iteration + 1) % int(args.test_interval) == 0:
-            logging.info('Greedy_Decode_Eval ' + iteration)
+            logging.info('Greedy_Decode_Eval ' + repr(iteration))
             Greedy_Decode_Eval(lprnet, test_dataset, args)
             # lprnet.train() # should be switch to train mode
 
@@ -177,11 +178,8 @@ def train():
         lr = adjust_learning_rate(optimizer, epoch, args.learning_rate, args.lr_schedule)
 
         if args.cuda:
-            images = Variable(images, requires_grad=False).cuda()
-            labels = Variable(labels, requires_grad=False).cuda()
-        else:
-            images = Variable(images, requires_grad=False)
-            labels = Variable(labels, requires_grad=False)
+            images = images.cuda()
+            labels = images.cuda()
 
         # forward
         logits = lprnet(images)
@@ -219,7 +217,7 @@ def Greedy_Decode_Eval(Net, datasets, args):
     Tn_1 = 0
     Tn_2 = 0
     t1 = time.time()
-    for i in range(epoch_size):
+    for e in range(epoch_size):
         # load train data
         images, labels, lengths = next(batch_iterator)
         start = 0
@@ -281,6 +279,9 @@ def Greedy_Decode_Eval(Net, datasets, args):
                 Tp += 1
             else:
                 Tn_2 += 1
+
+        if e % 20 == 0:
+            logging.info('test epoch: ' + repr(e) + '|| Totel ' + repr(epoch_size))
 
     Acc = Tp * 1.0 / (Tp + Tn_1 + Tn_2)
     logging.info("[Info] Test Accuracy: {} [{}:{}:{}:{}]".format(Acc, Tp, Tn_1, Tn_2, (Tp+Tn_1+Tn_2)))
