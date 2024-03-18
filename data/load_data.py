@@ -28,7 +28,7 @@ class LPRDataLoader(Dataset):
             for line in f:
                 parts = line.strip().split(' ')
                 if self.skip_line(parts):
-                    logging.info("skip label:", parts[1])
+                    logging.info("skip label:%s", parts[1])
                     continue
                 self.img_paths.append(base_path + parts[0])
                 self.labels.append(parts[1])
@@ -59,7 +59,7 @@ class LPRDataLoader(Dataset):
 
         # if len(label) == 8 or len(label) == 9 or len(label) == 10:
         #     if not self.check(label):
-        #         logging.info(filename,label_str)
+        #         logging.info(filename + label_str)
         #         assert 0, "Error label ^~^!!!"
 
         return Image, label, len(label)
