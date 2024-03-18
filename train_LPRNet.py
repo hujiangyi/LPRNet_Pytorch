@@ -153,10 +153,10 @@ def train():
             loss_val = 0
             epoch += 1
 
-        if iteration !=0 and iteration % args.save_interval == 0:
+        if iteration !=0 and iteration % int(args.save_interval) == 0:
             torch.save(lprnet.state_dict(), args.save_folder + 'LPRNet_' + '_iteration_' + repr(iteration) + '.pth')
 
-        if (iteration + 1) % args.test_interval == 0:
+        if (iteration + 1) % int(args.test_interval) == 0:
             Greedy_Decode_Eval(lprnet, test_dataset, args)
             # lprnet.train() # should be switch to train mode
 
