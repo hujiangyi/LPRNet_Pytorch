@@ -19,6 +19,7 @@ import argparse
 import torch
 import time
 import os
+import logging
 
 def sparse_tuple_for_ctc(T_length, lengths):
     input_lengths = []
@@ -89,6 +90,7 @@ def collate_fn(batch):
     return (torch.stack(imgs, 0), torch.from_numpy(labels), lengths)
 
 def train():
+    logging.basicConfig(filename='out.txt', level=logging.INFO)
     args = get_parser()
 
     T_length = 18 # args.lpr_max_len
@@ -100,13 +102,14 @@ def train():
 
     lprnet = build_lprnet(lpr_max_len=args.lpr_max_len, phase=args.phase_train, class_num=len(CHARS), dropout_rate=args.dropout_rate)
     device = torch.device("cuda:0" if args.cuda else "cpu")
+    logging.info(device)
     lprnet.to(device)
-    print("Successful to build network!")
+    logging.info("Successful to build network!")
 
     # load pretrained model
     if args.pretrained_model:
         lprnet.load_state_dict(torch.load(args.pretrained_model))
-        print("load pretrained model successful!")
+        logging.info("load pretrained model successful!")
     else:
         def xavier(param):
             nn.init.xavier_uniform(param)
@@ -123,7 +126,7 @@ def train():
 
         lprnet.backbone.apply(weights_init)
         lprnet.container.apply(weights_init)
-        print("initial net weights successful!")
+        logging.info("initial net weights successful!")
 
     # define optimizer
     # optimizer = optim.SGD(lprnet.parameters(), lr=args.learning_rate,
@@ -161,7 +164,7 @@ def train():
         # load train data
         images, labels, lengths = next(batch_iterator)
         # labels = np.array([el.numpy() for el in labels]).T
-        # print(labels)
+        # logging.info(labels)
         # get ctc parameters
         input_lengths, target_lengths = sparse_tuple_for_ctc(T_length, lengths)
         # update lr
@@ -177,10 +180,10 @@ def train():
         # forward
         logits = lprnet(images)
         log_probs = logits.permute(2, 0, 1) # for ctc loss: T x N x C
-        # print(labels.shape)
+        # logging.info(labels.shape)
         log_probs = log_probs.log_softmax(2).requires_grad_()
         # log_probs = log_probs.detach().requires_grad_()
-        # print(log_probs.shape)
+        # logging.info(log_probs.shape)
         # backprop
         optimizer.zero_grad()
         loss = ctc_loss(log_probs, labels, input_lengths=input_lengths, target_lengths=target_lengths)
@@ -191,11 +194,11 @@ def train():
         loss_val += loss.item()
         end_time = time.time()
         if iteration % 20 == 0:
-            print('Epoch:' + repr(epoch) + ' || epochiter: ' + repr(iteration % epoch_size) + '/' + repr(epoch_size)
+            logging.info('Epoch:' + repr(epoch) + ' || epochiter: ' + repr(iteration % epoch_size) + '/' + repr(epoch_size)
                   + '|| Totel iter ' + repr(iteration) + ' || Loss: %.4f||' % (loss.item()) +
                   'Batch time: %.4f sec. ||' % (end_time - start_time) + 'LR: %.8f' % (lr))
     # final test
-    print("Final test Accuracy:")
+    logging.info("Final test Accuracy:")
     Greedy_Decode_Eval(lprnet, test_dataset, args)
 
     # save final parameters
@@ -258,9 +261,9 @@ def Greedy_Decode_Eval(Net, datasets, args):
                 Tn_2 += 1
 
     Acc = Tp * 1.0 / (Tp + Tn_1 + Tn_2)
-    print("[Info] Test Accuracy: {} [{}:{}:{}:{}]".format(Acc, Tp, Tn_1, Tn_2, (Tp+Tn_1+Tn_2)))
+    logging.info("[Info] Test Accuracy: {} [{}:{}:{}:{}]".format(Acc, Tp, Tn_1, Tn_2, (Tp+Tn_1+Tn_2)))
     t2 = time.time()
-    print("[Info] Test Speed: {}s 1/{}]".format((t2 - t1) / len(datasets), len(datasets)))
+    logging.info("[Info] Test Speed: {}s 1/{}]".format((t2 - t1) / len(datasets), len(datasets)))
 
 
 if __name__ == "__main__":

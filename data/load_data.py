@@ -4,7 +4,9 @@ import numpy as np
 import random
 import cv2
 import os
+import logging
 
+logging.basicConfig(filename='out2.txt', level=logging.INFO)
 CHARS = ['京', '沪', '津', '渝', '冀', '晋', '蒙', '辽', '吉', '黑',
          '苏', '浙', '皖', '闽', '赣', '鲁', '豫', '鄂', '湘', '粤',
          '桂', '琼', '川', '贵', '云', '藏', '陕', '甘', '青', '宁',
@@ -26,7 +28,7 @@ class LPRDataLoader(Dataset):
             for line in f:
                 parts = line.strip().split(' ')
                 if self.skip_line(parts):
-                    print("skip label:", parts[1])
+                    logging.info("skip label:", parts[1])
                     continue
                 self.img_paths.append(base_path + parts[0])
                 self.labels.append(parts[1])
@@ -57,7 +59,7 @@ class LPRDataLoader(Dataset):
 
         # if len(label) == 8 or len(label) == 9 or len(label) == 10:
         #     if not self.check(label):
-        #         print(filename,label_str)
+        #         logging.info(filename,label_str)
         #         assert 0, "Error label ^~^!!!"
 
         return Image, label, len(label)
@@ -73,7 +75,7 @@ class LPRDataLoader(Dataset):
     def check(self, label):
         if label[2] != CHARS_DICT['D'] and label[2] != CHARS_DICT['F'] \
                 and label[-1] != CHARS_DICT['D'] and label[-1] != CHARS_DICT['F']:
-            print("Error label, Please check!")
+            logging.info("Error label, Please check!")
             return False
         else:
             return True
