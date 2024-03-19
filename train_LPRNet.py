@@ -57,14 +57,14 @@ def get_parser():
     parser.add_argument('--dropout_rate', default=0.5, help='dropout rate.')
     parser.add_argument('--learning_rate', default=0.1, help='base value of learning rate.')
     parser.add_argument('--lpr_max_len', default=8, help='license plate number max length.')
-    parser.add_argument('--train_batch_size', default=128, help='training batch size.')
-    parser.add_argument('--test_batch_size', default=120, help='testing batch size.')
+    parser.add_argument('--train_batch_size', default=100, help='training batch size.')
+    parser.add_argument('--test_batch_size', default=1000, help='testing batch size.')
     parser.add_argument('--phase_train', default=True, type=bool, help='train or test phase flag.')
-    parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
+    parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
     parser.add_argument('--cuda', default=False, type=bool, help='Use cuda to train model')
     parser.add_argument('--resume_epoch', default=0, type=int, help='resume iter for retraining')
-    parser.add_argument('--save_interval', default=2000, type=int, help='interval for save model state dict')
-    parser.add_argument('--test_interval', default=2000, type=int, help='interval for evaluate')
+    parser.add_argument('--save_interval', default=500, type=int, help='interval for save model state dict')
+    parser.add_argument('--test_interval', default=6000, type=int, help='interval for evaluate')
     parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
     parser.add_argument('--weight_decay', default=2e-5, type=float, help='Weight decay for SGD')
     parser.add_argument('--lr_schedule', default=[4, 8, 12, 14, 16], help='schedule for learning rate.')
@@ -127,8 +127,7 @@ def train():
         lprnet.container.apply(weights_init)
         logging.info("initial net weights successful!")
 
-    logging.info(device)
-    if args.cuda:
+    if bool(args.cuda):
         lprnet.cuda(0)
     else:
         lprnet.cpu()
@@ -177,7 +176,7 @@ def train():
         # update lr
         lr = adjust_learning_rate(optimizer, epoch, args.learning_rate, args.lr_schedule)
 
-        if args.cuda:
+        if bool(args.cuda):
             images = images.cuda()
             labels = images.cuda()
 
@@ -244,7 +243,7 @@ def Greedy_Decode_Eval(Net, datasets, args):
 
         # targets = np.array([el.numpy() for el in targets])
 
-        if args.cuda:
+        if bool(args.cuda):
             images = Variable(images.cuda())
         else:
             images = Variable(images)
